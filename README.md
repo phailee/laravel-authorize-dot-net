@@ -7,6 +7,7 @@ Laravel Cashier-Authorize provides an expressive, fluent interface to [Authorize
 ## Basic Setup
 
 Please read the following for the basic setup.
+composer require atacante/cashier-authorizenetpaisa
 
 #### .env
 ADN_ENV=

@@ -16,7 +16,7 @@
         }
     ],
         "require": {
-            "authorizenet/authorizenet": "dev-master",
+            "authorizenet/authorizenet": "^1.9.2",
             "dompdf/dompdf": "^0.6.1",
             "illuminate/container": "^5.2|^5.1",
             "illuminate/database": "~5.1",

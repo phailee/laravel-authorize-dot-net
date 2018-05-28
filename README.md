@@ -57,9 +57,8 @@ You will need to publish the assets of this package.
 `php artisan vendor:publish --provider="Laravel\CashierAuthorizeNet\CashierServiceProvider"`
 
 ### Configuration
-#### config/cashier.php
 
-Below is an example config for a subscription with Authorize.net compatibility. You can define your subscriptions in this config.
+#### config/cashier.php
 
 ```php
 'monthly-10-1' => [
@@ -78,8 +77,7 @@ Below is an example config for a subscription with Authorize.net compatibility. 
 ```
 
 #### config/services.php
-
-You will need to add the following to your 'config/services.php' file, please make sure that the model matches your app's User class:
+Add the following to your 'config/services.php' file, please make sure that the model matches your app's User class:
 
 ```php
 'authorize' => [

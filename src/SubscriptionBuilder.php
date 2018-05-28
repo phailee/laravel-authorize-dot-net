@@ -1,15 +1,20 @@
 <?php
-
 namespace Laravel\CashierAuthorizeNet;
 
 use DateTime;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
-use Laravel\CashierAuthorizeNet\Requestor;
-use net\authorize\api\contract\v1 as AnetAPI;
-use net\authorize\api\constants as AnetConstants;
-use net\authorize\api\controller as AnetController;
+use Laravel\CashierAuthorizeNet\Requester;
+	
+use net\authorize\api\contract\v1\ARBSubscriptionType,
+	net\authorize\api\contract\v1\PaymentScheduleType;
+
+use net\authorize\api\contract\v1\PaymentScheduleType\IntervalAType,
+	net\authorize\api\controller\ARBCreateSubscriptionController;
+
+use net\authorize\api\contract\v1\CustomerProfileIdType,
+	net\authorize\api\contract\v1\ARBCreateSubscriptionRequest;
 
 class SubscriptionBuilder
 {
@@ -82,7 +87,7 @@ class SubscriptionBuilder
         $this->user = $user;
         $this->name = $name;
         $this->plan = $plan;
-        $this->requestor = new Requestor;
+        $this->requester = new Requester;
     }
 
     /**
@@ -94,7 +99,6 @@ class SubscriptionBuilder
     public function quantity($quantity)
     {
         $this->quantity = $quantity;
-
         return $this;
     }
 
@@ -107,7 +111,6 @@ class SubscriptionBuilder
     public function trialDays($trialDays)
     {
         $this->trialDays = $trialDays;
-
         return $this;
     }
 
@@ -119,7 +122,6 @@ class SubscriptionBuilder
     public function skipTrial()
     {
         $this->skipTrial = true;
-
         return $this;
     }
 
@@ -132,7 +134,6 @@ class SubscriptionBuilder
     public function withCoupon($coupon)
     {
         $this->coupon = $coupon;
-
         return $this;
     }
 
@@ -145,7 +146,6 @@ class SubscriptionBuilder
     public function withMetadata($metadata)
     {
         $this->metadata = $metadata;
-
         return $this;
     }
 
@@ -168,69 +168,81 @@ class SubscriptionBuilder
      * @return \Laravel\Cashier\Subscription
      */
     public function create()
-    {
-        $config = Config::get('cashier-authorize');
-
-        // Subscription Type Info
-        $subscription = new AnetAPI\ARBSubscriptionType();
-        $subscription->setName($config[$this->plan]['name']);
-
-        $interval = new AnetAPI\PaymentScheduleType\IntervalAType();
-        $interval->setLength($config[$this->plan]['interval']['length']);
-        $interval->setUnit($config[$this->plan]['interval']['unit']);
-
-        $trialDays = $config[$this->plan]['trial_days'];
-        $this->trialDays($trialDays);
-
-        // Must use mountain time according to Authorize.net
-        $nowInMountainTz = Carbon::now('America/Denver')->addDays($trialDays);
-
-        $paymentSchedule = new AnetAPI\PaymentScheduleType();
-        $paymentSchedule->setInterval($interval);
-        $paymentSchedule->setStartDate(new DateTime($nowInMountainTz));
-        $paymentSchedule->setTotalOccurrences($config[$this->plan]['total_occurances']);
-        $paymentSchedule->setTrialOccurrences($config[$this->plan]['trial_occurances']);
-
-        $amount = round(floatval($config[$this->plan]['amount']) * floatval('1.'.$this->getTaxPercentageForPayload()), 2);
-
-        $subscription->setPaymentSchedule($paymentSchedule);
-        $subscription->setAmount($amount);
-        $subscription->setTrialAmount($config[$this->plan]['trial_amount']);
-
-        $profile = new AnetAPI\CustomerProfileIdType();
-        $profile->setCustomerProfileId($this->user->authorize_id);
-        $profile->setCustomerPaymentProfileId($this->user->authorize_payment_id);
-        $subscription->setProfile($profile);
-
-        $requestor = new Requestor();
-        $request = $requestor->prepare((new AnetAPI\ARBCreateSubscriptionRequest()));
-        $request->setSubscription($subscription);
-        $controller = new AnetController\ARBCreateSubscriptionController($request);
-
-        $response = $controller->executeWithApiResponse($requestor->env);
-
-        if (($response != null) && ($response->getMessages()->getResultCode() == "Ok") ) {
-            if ($this->skipTrial) {
-                $trialEndsAt = null;
-            } else {
-                $trialEndsAt = $this->trialDays ? Carbon::now()->addDays($this->trialDays) : null;
-            }
-
-            return $this->user->subscriptions()->create([
+    {	
+        $user = $this->user;
+		$interval = new IntervalAType;
+		
+		$config = Config::get('cashier');
+		$plan	= array_get($config, $this->plan);
+		
+		$instance = new Requester;
+        $request = $instance->prepare(new ARBCreateSubscriptionRequest);
+		
+		// Subscription Type Info
+        $subscription = new ARBSubscriptionType;
+        $subscription->setName(array_get($plan, 'name'));
+		
+        $this->trialDays($trialNumDays = array_get($plan, 'trial_days'));
+        $paymentSchedule = new PaymentScheduleType;
+		
+        $paymentStartDay = new DateTime(Carbon::now('America/Denver')
+			->addDays($trialNumDays));
+        
+		$tax_percentage = floatval(sprintf(
+			'1.%d', $this->getTaxPercentageForPayload()?? 0));
+		
+		$interval->setLength(array_get($plan, 'interval.length'))
+				 ->setUnit(array_get($plan, 'interval.unit'));
+		
+		$subscription->setPaymentSchedule($paymentSchedule
+				->setInterval($interval)
+				->setStartDate($paymentStartDay)
+				->setTotalOccurrences(array_get($plan, 'total_occurances'))
+				->setTrialOccurrences(array_get($plan, 'trial_occurances')));
+		
+        $subscription->setAmount(round( floatval(array_get($plan, 'amount')) * 
+										$tax_percentage));
+        
+		$subscription->setTrialAmount(array_get($plan, 'trial_amount'));
+        $profile = new CustomerProfileIdType;
+		
+		$request->setSubscription($subscription);
+        $controller = new ARBCreateSubscriptionController($request);
+        
+        $subscription->setProfile($profile
+			->setCustomerProfileId($user->authorize_id)
+			->setCustomerPaymentProfileId($user->authorize_payment_id));
+		
+		$response = $controller->executeWithApiResponse($instance->env);
+        $message = $response->getMessages();
+		
+		if ($response && strcmp($message->getResultCode(), "Ok") === 0)
+		{
+            $carbon = $this->trialDays?
+				Carbon::now()->addDays($this->trialDays):
+				null;
+			
+			$trialEndsAt = ($this->skipTrial)?
+                null: $carbon;
+			
+			return $this->user->subscriptions()->create([
                 'name' => $this->name,
                 'authorize_id' => $response->getSubscriptionId(),
                 'authorize_plan' => $this->plan,
                 'authorize_payment_id' => $this->user->authorize_payment_id,
                 'metadata' => json_encode([
-                    'refId' => $requestor->refId
+                    'refId' => $requester->refId
                 ]),
                 'quantity' => $this->quantity,
                 'trial_ends_at' => $trialEndsAt,
                 'ends_at' => null,
             ]);
-        } else {
-            $errorMessages = $response->getMessages()->getMessage();
-            throw new Exception("Response : " . $errorMessages[0]->getCode() . "  " .$errorMessages[0]->getText(), 1);
+        }
+		else {
+			$excMesg = array_get($message->getMessage(), 0);
+			
+			throw new Exception(sprintf(
+				'Payment Processor: %d: %s', $excMesg->getCode(), $excMesg->getText()), 1);
         }
     }
 
@@ -241,13 +253,13 @@ class SubscriptionBuilder
      */
     protected function getTrialEndForPayload()
     {
-        if ($this->skipTrial) {
-            return 'now';
-        }
-
-        if ($this->trialDays) {
-            return Carbon::now()->addDays($this->trialDays)->getTimestamp();
-        }
+        $trial_date = Carbon::now()
+			->addDays($this->trialDays)
+			->getTimestamp();
+		
+		return ($this->skipTrial)? 
+            'now':
+			$trial_date;
     }
 
     /**
@@ -257,8 +269,7 @@ class SubscriptionBuilder
      */
     protected function getTaxPercentageForPayload()
     {
-        if ($taxPercentage = $this->user->taxPercentage()) {
-            return $taxPercentage;
-        }
+        return $this->user
+					->taxPercentage();
     }
 }

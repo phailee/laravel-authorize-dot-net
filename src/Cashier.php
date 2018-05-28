@@ -1,5 +1,4 @@
 <?php
-
 namespace Laravel\CashierAuthorizeNet;
 
 use Exception;
@@ -50,16 +49,12 @@ class Cashier
     protected static function guessCurrencySymbol($currency)
     {
         switch (strtolower($currency)) {
-            case 'usd':
-            case 'aud':
-            case 'cad':
-                return '$';
-            case 'eur':
-                return '€';
-            case 'gbp':
-                return '£';
-            default:
-                throw new Exception('Unable to guess symbol for currency. Please explicitly specify it.');
+		case 'usd':
+		case 'aud':
+		case 'cad': return '$';
+		case 'eur': return '€';
+		case 'gbp': return '£';
+		   default: throw new Exception('Unable to guess symbol for currency. Please explicitly specify it.');
         }
     }
 

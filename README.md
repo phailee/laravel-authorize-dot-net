@@ -2,14 +2,14 @@
 
 ## Introduction
 
-Laravel Cashier-Authorize provides an expressive, fluent interface to [Authorize.net's](https://authorize.net) subscription billing services. It handles almost all of the boilerplate subscription billing code you are dreading writing. In addition to basic subscription management, Cashier-Authorize can handle cancellation grace periods, and even generate invoice PDFs.
+This package provides a compatible, expressive and fluent interface to [Authorize.net's](https://authorize.net) native subscription billing services. It handles (mostly) all of the boilerplate subscription billing code you would otherwise have to manage yourself. In addition to basic subscription management, this package can also handle cancellation grace periods.
 
 ## Basic Setup
 
 Please read the following for the basic setup.
 
 ## Composer Setup 
-composer require atacante/cashier-authorizenetpaisa
+composer require lighth7015/cashier-authorize-dot-net
 
 #### .env
 ADN_ENV=
@@ -56,7 +56,7 @@ You will need to publish the assets of this package.
 
 `php artisan vendor:publish --provider="Laravel\CashierAuthorizeNet\CashierServiceProvider"`
 
-#### Config
+#### 'config/cashier.php'
 
 Below is an example config for a subscription with Authorize.net compatibility. You can define your subscriptions in this config.
 

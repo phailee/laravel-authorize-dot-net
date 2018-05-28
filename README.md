@@ -2,14 +2,14 @@
 
 ## Introduction
 
-Laravel Cashier-Authorize provides an expressive, fluent interface to [Authorize.net's](https://authorize.net) subscription billing services. It handles almost all of the boilerplate subscription billing code you are dreading writing. In addition to basic subscription management, Cashier-Authorize can handle cancellation grace periods, and even generate invoice PDFs.
+This package provides a compatible, expressive and fluent interface to [Authorize.net's](https://authorize.net) native subscription billing services. It handles (mostly) all of the boilerplate subscription billing code you would otherwise have to manage yourself. In addition to basic subscription management, this package can also handle cancellation grace periods.
 
 ## Basic Setup
 
 Please read the following for the basic setup.
 
 ## Composer Setup 
-composer require atacante/cashier-authorizenetpaisa
+composer require lighth7015/cashier-authorize-dot-net
 
 #### .env
 ADN_ENV=
@@ -56,10 +56,11 @@ You will need to publish the assets of this package.
 
 `php artisan vendor:publish --provider="Laravel\CashierAuthorizeNet\CashierServiceProvider"`
 
-#### Config
+## Configuration
 
-Below is an example config for a subscription with Authorize.net compatibility. You can define your subscriptions in this config.
+The following files need to be updated, as demonstrated below. `config/services.php` needs to be updated to match your User account's class name.
 
+#### config/cashier.php
 ```php
 'monthly-10-1' => [
     'name' => 'main',
@@ -76,10 +77,7 @@ Below is an example config for a subscription with Authorize.net compatibility. 
 ]
 ```
 
-#### 'config/services.php'
-
-You will need to add the following to your 'config/services.php' file, please make sure that the model matches your app's User class:
-
+#### config/services.php
 ```php
 'authorize' => [
     'model'  => App\User::class,
@@ -90,33 +88,213 @@ You can also set this value with the following `.env` variable: ADN_MODEL
 
 ## Basic Usage
 
-There are differences with Authorize.net vs services like Stripe. Authorize.net is a slighly slower and more restricted subscription provider. This means you cannot do things like swap subscriptions, or change quantity of subscriptions. You need to cancel, and create new subscriptions to handle those variations.
+There are several differences with Authorize.net vs. other services (e.g. Stripe); firstly, Authorize.net is slighly slower and a more restricted subscription provider. You cannot perform certain things (i.e. swap subscriptions, change the quantity of a subscription) without first canceling and creating a new subscription.
 
-You can perform the following actions:
 
-User::
-* charge($amount, array $options = [])
-* hasCardOnFile
-* newSubscription($subscription, $plan)
-* onTrial($subscription = 'default', $plan = null)
-* onGenericTrial()
-* subscribed($subscription = 'default', $plan = null)
-* subscription($subscription = 'default')
-* subscriptions()
-* updateCard($card) // $card = ['number' => '', 'expriation' => '']
-* subscribedToPlan($plans, $subscription = 'default')
-* onPlan($plan)
-* hasAuthorizeId()
-* createAsAuthorizeCustomer($creditCardDetails)
-* upcomingInvoice($plan)
-* findInvoice($invoiceId)
-* findInvoiceOrFail($id)
-* downloadInvoice($id, array $data, $storagePath = null)
-* getSubscriptionFromAuthorize($subscriptionId)
-* invoices($plan)
-* deleteAuthorizeProfile()
-* preferredCurrency()
-* taxPercentage() (this method should be added to the User Model and define that user's tax percentage ie: return 10;)
+#### `Laravel\CashierAuthorize\Billable` interface
+```php
+interface Billable
+{
+	/**
+	 * Charge a customer once.
+	 *
+	 * @param  int  $amount
+	 * @param  array  $options
+	 * @param  string $transactionType
+	 *
+	 * @return Charge
+	 * @throws Error\Card
+	 */
+	public function charge(float $amount, array $options = [], string $transactionType = "authCaptureTransaction");
+
+	/**
+	 * Determines if the customer currently has a card on file.
+	 *
+	 * @return bool
+	 */
+	public function hasCardOnFile();
+
+	/**
+	 * Invoice the customer for the given amount.
+	 *
+	 * @param  string  $description
+	 * @param  int  $amount
+	 * @param  array  $options
+	 * @return bool
+	 *
+	 * @throws \Stripe\Error\Card
+	 */
+	public function invoiceFor($description, $amount, array $options = []);
+
+	/**
+	 * Begin creating a new subscription.
+	 *
+	 * @param  string  $subscription
+	 * @param  string  $plan
+	 * @return \Laravel\CashierAuthorizeNet\SubscriptionBuilder
+	 */
+	public function newSubscription($subscription, $plan);
+
+	/**
+	 * Determine if the user is on trial.
+	 *
+	 * @param  string  $subscription
+	 * @param  string|null  $plan
+	 * @return bool
+	 */
+	public function onTrial(string $subscription = 'default', $plan = null);
+
+	/**
+	 * Determine if the user is on a "generic" trial at the user level.
+	 *
+	 * @return bool
+	 */
+	public function onGenericTrial();
+
+	/**
+	 * Determine if the user has a given subscription.
+	 *
+	 * @param  string  $subscription
+	 * @param  string|null  $plan
+	 * @return bool
+	 */
+	public function subscribed($subscription = 'default', $plan = null);
+
+	/**
+	 * Get a subscription instance by name.
+	 *
+	 * @param  string  $subscription
+	 * @return \Laravel\Cashier\Subscription|null
+	 */
+	public function subscription($subscription = 'default');
+	
+	/**
+	 * Get all of the subscriptions for the user.
+	 *
+	 * @return \Illuminate\Database\Eloquent\Collection
+	 */
+	public function subscriptions();
+	
+	/**
+	 * Get the entity's upcoming invoice.
+	 *
+	 * @return \Laravel\Cashier\Invoice|null
+	 */
+	public function upcomingInvoice();
+	
+	/**
+	 * Find an invoice by ID.
+	 *
+	 * @param  string  $id
+	 * @return \Laravel\Cashier\Invoice|null
+	 */
+	public function findInvoice($invoiceId);
+	
+	/**
+	 * Find an invoice or throw a 404 error.
+	 *
+	 * @param  string  $id
+	 * @return \Laravel\Cashier\Invoice
+	 */
+	public function findInvoiceOrFail($id);
+	
+	/**
+	 * Create an invoice download Response.
+	 *
+	 * @param  string  $id
+	 * @param  array   $data
+	 * @param  string  $storagePath
+	 * @return \Symfony\Component\HttpFoundation\Response
+	 */
+	public function downloadInvoice($id, array $data, $storagePath = null);
+	
+	/**
+	 * Get a subcription from Authorize
+	 *
+	 * @param  string $subscriptionId
+	 * @return array
+	 */
+	public function getSubscriptionFromAuthorize($subscriptionId);
+
+	/**
+	 * Get a collection of the entity's invoices.
+	 *
+	 * @param  string  $plan
+	 * @return \Illuminate\Support\Collection
+	 */
+	public function invoices($plan);
+	
+	/**
+	 * Update customer's credit card.
+	 *
+	 * @param  string  $token
+	 * @return void
+	 */
+	public function updateCard($card);
+	
+	/**
+	 * Determine if the user is actively subscribed to one of the given plans.
+	 *
+	 * @param  array|string  $plans
+	 * @param  string  $subscription
+	 * @return bool
+	 */
+	public function subscribedToPlan($plans, $subscription = 'default');
+	
+	/**
+	 * Determine if the entity is on the given plan.
+	 *
+	 * @param  string  $plan
+	 * @return bool
+	 */
+	public function onPlan($plan);
+	
+	/**
+	 * Determine if the entity has a Stripe customer ID.
+	 *
+	 * @return bool
+	 */
+	public function hasAuthorizeId() { return !!$this->authorize_id; }
+
+	/**
+	 * Create a Stripe customer for the given user.
+	 *
+	 * @param  array $creditCardDetails
+	 * @return StripeCustomer
+	 */
+	public function createAsAuthorizeCustomer(Array $location, array $cardDetails);
+	
+	/**
+	 * Delete an Authorize.net Profile
+	 *
+	 * @return
+	 */
+	public function deleteAuthorizeProfile();
+	
+	/**
+	 * Get the Stripe supported currency used by the entity.
+	 *
+	 * @return string
+	 */
+	public function preferredCurrency();
+
+	/**
+	 * Get the tax percentage to apply to the subscription.
+	 *
+	 * @return int
+	 */
+	public function taxPercentage();
+
+	/**
+	 * Detect the brand cause Authorize wont give that to us
+	 *
+	 * @param  string $card Card number
+	 * @return string
+	 */
+	public function cardBrandDetector($card);
+}
+```
+
 
 #### Transaction Details
 
@@ -148,3 +326,4 @@ Another limitation is time related. Due to the fact that Authorize.net uses a SO
 ## License
 
 Laravel Cashier-Authorize is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT)
+# New Document

@@ -100,9 +100,10 @@ interface Billable
 	 *
 	 * @param  int  $amount
 	 * @param  array  $options
-	 * @return \Stripe\Charge
+	 * @param  string $transactionType
 	 *
-	 * @throws \Stripe\Error\Card
+	 * @return Charge
+	 * @throws Error\Card
 	 */
 	public function charge(float $amount, array $options = [], string $transactionType = "authCaptureTransaction");
 

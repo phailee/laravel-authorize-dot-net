@@ -1,6 +1,5 @@
 <?php
-
-namespace Laravel\CashierAuthorizeNet;
+namespace Laravel\Cashier\AuthorizeNet;
 
 use Carbon\Carbon;
 use net\authorize\api\contract\v1 as AnetAPI;

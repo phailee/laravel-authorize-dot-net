@@ -1,6 +1,5 @@
 <?php
-
-namespace Laravel\CashierAuthorizeNet;
+namespace Laravel\Cashier\AuthorizeNet;
 
 use DOMPDF;
 use Carbon\Carbon;

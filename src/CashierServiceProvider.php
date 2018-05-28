@@ -1,6 +1,5 @@
 <?php
-
-namespace Laravel\CashierAuthorizeNet;
+namespace Laravel\Cashier\AuthorizeNet;
 
 use Illuminate\Support\ServiceProvider;
 

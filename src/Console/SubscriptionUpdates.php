@@ -1,6 +1,5 @@
 <?php
-
-namespace Laravel\CashierAuthorizeNet\Console;
+namespace Laravel\Cashier\AuthorizeNet\Console;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;

@@ -56,9 +56,9 @@ You will need to publish the assets of this package.
 
 `php artisan vendor:publish --provider="Laravel\CashierAuthorizeNet\CashierServiceProvider"`
 
-### Configuration
+#### Configuration
 
-#### config/cashier.php
+##### config/cashier.php
 
 ```php
 'monthly-10-1' => [
@@ -76,7 +76,7 @@ You will need to publish the assets of this package.
 ]
 ```
 
-#### config/services.php
+##### config/services.php
 Add the following to your 'config/services.php' file, please make sure that the model matches your app's User class:
 
 ```php

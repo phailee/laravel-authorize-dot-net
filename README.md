@@ -35,7 +35,7 @@ Schema::table('users', function ($table) {
 ```
 
 ```php
-Schema::create('subscriptions', function ($table) {
+Schema::create('authorize_subscriptions', function ($table) {
     $table->increments('id');
     $table->integer('user_id');
     $table->string('name');

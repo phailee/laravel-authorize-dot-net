@@ -21,6 +21,9 @@ class Subscription extends Model
 	 *
 	 * @var array
 	 */
+
+    protected $table = 'authorize_subscriptions';
+
 	protected $guarded = [];
 
 	/**

@@ -9,7 +9,7 @@ This package provides a compatible, expressive and fluent interface to [Authoriz
 Please read the following for the basic setup.
 
 ## Composer Setup 
-composer require lighth7015/cashier-authorize-dot-net
+composer require phailee/laravel-authorize-dot-net
 
 #### .env
 ADN_ENV=

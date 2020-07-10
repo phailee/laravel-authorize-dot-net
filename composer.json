@@ -1,5 +1,5 @@
 {
-    "name": "lighth7015/cashier-authorize-dot-net",
+    "name": "phailee/laravel-authorize-dot-net",
     "description": "A Laravel Cashier interface to Authorize.net's subscription native billing services.",
     "keywords": ["laravel", "billing", "cashier", "authorize.net", "payment module"],
     "type": "library",
@@ -17,12 +17,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Shahid Karimi",
-            "email": "karimi.shahid@gmail.com"
-        },
-        {
-            "name": "Robert Butler",
-            "email": "me@r-butler.net"
+            "name": "Phailee Sharma",
+            "email": "phaileesharma@gmail.com"
         }
     ],
    "autoload": {
